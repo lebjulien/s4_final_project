@@ -61,6 +61,7 @@ fviz_gap_stat(gap_stat)
 ```{r}
 # classification ascendante hiérarchique
 
+  
 
 ```
 

@@ -20,10 +20,10 @@ data <- na.omit(data)
 # Conversion des variables non numériques en variables numériques
 data$Diagnosis <- as.numeric(factor(data$Diagnosis))
 
-
-
 data <- scale(data)
 data <- as_tibble(data)
+
+
 
 ```
 
@@ -37,17 +37,22 @@ fviz_nbclust(data, kmeans, method = "wss")
 library(dplyr)
 model <- data %>% 
   select(contains('_mean')) %>%
-  kmeans(centers = 4)
+  kmeans(centers = 2)
 
 # Visualisation des résultats
 library(cluster)
+library(animation)
+
 clusplot(data, model$cluster, color = TRUE, shade = TRUE, labels = 2, lines = 0)
+
+kmeans.ani(data)
 
 # Interprétation des résultats
 table(model$cluster)
 
 print(model)
 ```
+
 ```{r}
 set.seed(123)
 gap_stat <- clusGap(data, FUN = kmeans, nstart = 25,
@@ -57,11 +62,9 @@ fviz_gap_stat(gap_stat)
 
 ```
 
-
 ```{r}
 # classification ascendante hiérarchique
 
   
 
 ```
-

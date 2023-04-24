@@ -1,0 +1,78 @@
+---
+title: "Projet final test"
+output: html_document
+date: "2023-04-24"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+library(readr)
+data <- read_csv("wdbc.data", 
+                 col_names = c("ID number","Diagnosis","radius_mean","texture_mean","perimeter_mean","area_mean","smoothness_mean","compactness_mean","concavity_mean","concave_points_mean","symmetry_mean","fractal_dimension_mean","radius_SE","texture_SE","perimeter_SE","area_SE","smoothness_SE","compactness_SE","concavity_SE","concave_points_SE","symmetry_SE","fractal_dimension_SE","radius_worst","texture_worst","perimeter_worst","area_worst","smoothness_worst","compactness_worst","concavity_worst","concave_points_worst","symmetry_worst","fractal_dimension_worst"))
+
+data <- na.omit(data)
+
+# Conversion des variables non numériques en variables numériques
+data$Diagnosis <- as.numeric(factor(data$Diagnosis))
+
+rescaled_selected_data <- data %>% 
+  mutate(scal_radius_mean = scale(radius_mean),
+         scal_texture_mean = scale(texture_mean),
+         scal_perimeter_mean = scale(perimeter_mean),
+         scal_area_mean = scale(area_mean),
+         scal_smoothness_mean = scale(smoothness_mean),
+         scal_compactness_mean = scale(compactness_mean),
+         scal_concavity_mean = scale(concavity_mean),
+         scal_concave_points_mean = scale(concave_points_mean),
+         scal_symmetry_mean = scale(symmetry_mean),
+         scal_fractal_dimension_mean = scale(fractal_dimension_mean)) %>% 
+  select(contains('scal_'))
+  
+
+#data <- as_tibble(data)
+```
+
+```{r}
+set.seed(2345)
+library(animation)
+
+kmeans.ani(rescaled_selected_data[2:3], 3)
+```
+
+```{r}
+pc_cluster <-kmeans(rescaled_selected_data, 5)
+```
+
+```{r}
+kmean_withinss <- function(k) {
+    cluster <- kmeans(rescaled_selected_data, k)
+    return (cluster$tot.withinss)
+}
+```
+
+```{r}
+## Test avec 2 clusters
+
+kmean_withinss(2)
+```
+
+```{r}
+# Set maximum cluster 
+max_k <-10
+# Run algorithm over a range of k 
+wss <- sapply(2:max_k, kmean_withinss)
+
+# Create a data frame to plot the graph
+elbow <-data.frame(2:max_k, wss)
+
+# Plot the graph with gglop
+ggplot(elbow, aes(x = X2.max_k, y = wss)) +
+    geom_point() +
+    geom_line() +
+    scale_x_continuous(breaks = seq(1, 20, by = 1))
+```

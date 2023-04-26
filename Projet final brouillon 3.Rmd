@@ -1,0 +1,116 @@
+---
+title: "Projet final brouillon 3"
+output:
+  pdf_document: default
+  html_document: default
+date: "2023-04-26"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## R Markdown
+
+```{r}
+library(readr)
+library(tidyverse)
+library(readxl)
+library(FactoMineR)
+library(factoextra)
+library(rpart)
+library(rpart.plot)
+
+data <- read_csv("wdbc.data", 
+                 col_names = c("ID number",
+                               "Diagnosis",
+                               "radius_mean",
+                               "texture_mean",
+                               "perimeter_mean",
+                               "area_mean","smoothness_mean",
+                               "compactness_mean",
+                               "concavity_mean",
+                               "concave_points_mean",
+                               "symmetry_mean",
+                               "fractal_dimension_mean",
+                               "radius_SE","texture_SE",
+                               "perimeter_SE","area_SE",
+                               "smoothness_SE",
+                               "compactness_SE",
+                               "concavity_SE",
+                               "concave_points_SE",
+                               "symmetry_SE",
+                               "fractal_dimension_SE",
+                               "radius_worst",
+                               "texture_worst",
+                               "perimeter_worst",
+                               "area_worst",
+                               "smoothness_worst",
+                               "compactness_worst",
+                               "concavity_worst",
+                               "concave_points_worst",
+                               "symmetry_worst",
+                               "fractal_dimension_worst"))
+
+clean_data <- data %>% 
+  select(c(contains("_mean"), Diagnosis)) %>% 
+  drop_na()
+```
+
+```{r}
+#Création d’un dataset d’apprentissage et d’un dataset de validation
+nb_lignes <- floor((nrow(clean_data)*0.75)) #Nombre de lignes de l’échantillon d’apprentissage : 75% du dataset
+dataset <- clean_data[sample(nrow(clean_data)), ] #Ajout de numéros de lignes
+dataset.train <- clean_data[1:nb_lignes, ] #Echantillon d’apprentissage
+dataset.test <- clean_data[(nb_lignes+1):nrow(clean_data), ] #Echantillon de test
+```
+
+```{r}
+#Construction de l’arbre
+dataset.Tree <- rpart(Diagnosis ~ ., 
+                      data = dataset.train,
+                      method = "class", 
+                      control = rpart.control(minsplit = 5,
+                                              cp=0)
+                      )
+
+#Affichage du résultat
+rpart.plot(dataset.Tree)
+
+#On cherche à minimiser l’erreur pour définir le niveau d’élagage
+plotcp(dataset.Tree)
+printcp(dataset.Tree)
+```
+```{r}
+#Affichage du cp optimal
+print(dataset.Tree$cptable[which.min(dataset.Tree$cptable[,4]),1])
+```
+
+```{r}
+#Elagage de l’arbre avec le cp optimal
+dataset.Tree_Opt <- prune(dataset.Tree,
+                          cp = dataset.Tree$cptable[which.min(dataset.Tree$cptable[,4]),1])
+
+#Représentation graphique de l’arbre optimal
+prp(dataset.Tree_Opt,extra=1)
+```
+```{r}
+#Prédiction du modèle sur les données de test
+dataset.test_Predict<-predict(dataset.Tree_Opt,newdata=dataset.test, type= "class")
+
+#Matrice de confusion
+mc<-table(dataset.test$Diagnosis, dataset.test_Predict)
+print(mc)
+```
+```{r}
+#Erreur de classement
+erreur.classement<-1.0-(mc[1,1]+mc[2,2])/sum(mc)
+print(erreur.classement)
+```
+
+```{r}
+#Taux de prédiction
+prediction=mc[2,2]/sum(mc[2,])
+print(prediction)
+```
+

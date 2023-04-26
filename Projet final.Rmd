@@ -1,7 +1,7 @@
 ---
-title: "Projet Final"
+title: "Projet final Test 2"
 output: html_document
-date: "2023-04-12"
+date: "2023-04-24"
 ---
 
 ```{r setup, include=FALSE}
@@ -12,59 +12,85 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(readr)
-data <- read_csv("wdbc.data", 
-                 col_names = c("ID number","Diagnosis","radius_mean","texture_mean","perimeter_mean","area_mean","smoothness_mean","compactness_mean","concavity_mean","concave_points_mean","symmetry_mean","fractal_dimension_mean","radius_SE","texture_SE","perimeter_SE","area_SE","smoothness_SE","compactness_SE","concavity_SE","concave_points_SE","symmetry_SE","fractal_dimension_SE","radius_worst","texture_worst","perimeter_worst","area_worst","smoothness_worst","compactness_worst","concavity_worst","concave_points_worst","symmetry_worst","fractal_dimension_worst"))
-
-data <- na.omit(data)
-
-# Conversion des variables non numériques en variables numériques
-data$Diagnosis <- as.numeric(factor(data$Diagnosis))
-
-data <- scale(data)
-data <- as_tibble(data)
-
-
-
-```
-
-```{r}
-
-# Détermination du nombre optimal de clusters
+library(tidyverse)
+library(readxl)
+library(FactoMineR)
 library(factoextra)
-fviz_nbclust(data, kmeans, method = "wss")
+library(arsenal)
 
-# Création du modèle
-library(dplyr)
-model <- data %>% 
-  select(contains('_mean')) %>%
-  kmeans(centers = 2)
+data <- read_csv("wdbc.data", 
+                 col_names = c("ID number",
+                               "Diagnosis",
+                               "radius_mean",
+                               "texture_mean",
+                               "perimeter_mean",
+                               "area_mean","smoothness_mean",
+                               "compactness_mean",
+                               "concavity_mean",
+                               "concave_points_mean",
+                               "symmetry_mean",
+                               "fractal_dimension_mean",
+                               "radius_SE","texture_SE",
+                               "perimeter_SE","area_SE",
+                               "smoothness_SE",
+                               "compactness_SE",
+                               "concavity_SE",
+                               "concave_points_SE",
+                               "symmetry_SE",
+                               "fractal_dimension_SE",
+                               "radius_worst",
+                               "texture_worst",
+                               "perimeter_worst",
+                               "area_worst",
+                               "smoothness_worst",
+                               "compactness_worst",
+                               "concavity_worst",
+                               "concave_points_worst",
+                               "symmetry_worst",
+                               "fractal_dimension_worst"))
 
-# Visualisation des résultats
-library(cluster)
-library(animation)
-
-clusplot(data, model$cluster, color = TRUE, shade = TRUE, labels = 2, lines = 0)
-
-kmeans.ani(data)
-
-# Interprétation des résultats
-table(model$cluster)
-
-print(model)
+clean_data <- data %>% 
+  #select(contains('_mean')) %>% 
+  drop_na()
 ```
 
 ```{r}
-set.seed(123)
-gap_stat <- clusGap(data, FUN = kmeans, nstart = 25,
-                    K.max = 10, B = 50)
-
-fviz_gap_stat(gap_stat)
-
+set.seed(1234)
 ```
 
 ```{r}
-# classification ascendante hiérarchique
+# Cluster Analysis - kmeans
+kmeans_basic <- kmeans(clean_data[,3:12], centers = 2)
+kmeans_basic_table <- data.frame(kmeans_basic$size, kmeans_basic$centers)
+kmeans_basic_df <- data.frame(Cluster = kmeans_basic$cluster, clean_data)
+# head of df
+head(kmeans_basic_df)
+```
 
-  
+```{r}
+# Example ggplot
+ggplot(data = kmeans_basic_df, aes(y = Cluster)) +
+  geom_bar(aes(fill = Diagnosis)) +
+  ggtitle("Count of Clusters by Diagnosis") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
 
+```{r}
+# Fancy K-Means
+fviz_nbclust(scale(clean_data[,3:12]), kmeans, nstart=100, method = "wss") + 
+  geom_vline(xintercept = 2, linetype = 1)
+```
+
+```{r}
+# Fancy kmeans
+kmeans_fancy <- kmeans(scale(clean_data[,3:12]), 2, nstart = 100)
+# plot the clusters
+fviz_cluster(kmeans_fancy, data = scale(clean_data[,3:12]), geom = c("point"),ellipse.type = "euclid")
+```
+
+```{r}
+outCtl <- tableby(Cluster ~ Diagnosis + radius_mean + texture_mean + perimeter_mean + area_mean + smoothness_mean + compactness_mean + concavity_mean + concave_points_mean + symmetry_mean + fractal_dimension_mean, data=kmeans_basic_df,
+                  control=tableby.control(total=TRUE, cat.simplify=TRUE,
+                  cat.stats=c("Nmiss","countpct"),digits=1))
+summary(outCtl, text=TRUE)
 ```

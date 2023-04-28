@@ -1,0 +1,85 @@
+---
+title: "Projet final - Ensemble learning"
+output: html_document
+date: "2023-04-28"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Question 3
+
+### Ensemble learning
+
+```{r, echo=FALSE}
+library(caretEnsemble)
+library(caret)
+library(randomForest)
+library(xgboost)
+library(readr)
+library(tidyverse)
+library(readxl)
+library(SuperLearner)
+
+data <- read_csv("wdbc.data", 
+                 col_names = c("ID number",
+                               "Diagnosis",
+                               "radius_mean",
+                               "texture_mean",
+                               "perimeter_mean",
+                               "area_mean","smoothness_mean",
+                               "compactness_mean",
+                               "concavity_mean",
+                               "concave_points_mean",
+                               "symmetry_mean",
+                               "fractal_dimension_mean",
+                               "radius_SE","texture_SE",
+                               "perimeter_SE","area_SE",
+                               "smoothness_SE",
+                               "compactness_SE",
+                               "concavity_SE",
+                               "concave_points_SE",
+                               "symmetry_SE",
+                               "fractal_dimension_SE",
+                               "radius_worst",
+                               "texture_worst",
+                               "perimeter_worst",
+                               "area_worst",
+                               "smoothness_worst",
+                               "compactness_worst",
+                               "concavity_worst",
+                               "concave_points_worst",
+                               "symmetry_worst",
+                               "fractal_dimension_worst"))
+
+clean_data <- data %>% 
+  select(c(contains("_mean"), Diagnosis)) %>% 
+  drop_na()
+
+target <- "Diagnosis"
+```
+```{r}
+set.seed(123)
+trainIndex <- createDataPartition(clean_data$Diagnosis, p = 0.7, 
+                                   list = FALSE, times = 1)
+train <- clean_data[trainIndex,]
+test <- clean_data[-trainIndex,]
+
+
+```
+
+```{r}
+model_list <- c("glm", "rf", "gbm")
+models <- list()
+for (i in 1:length(model_list)) {
+  models[[i]] <- train(Diagnosis ~ ., data = train, 
+                       method = model_list[i], 
+                       trControl = trainControl(method = "cv", number = 5))
+}
+```
+
+```{r}
+ensemble_model <- stack(models, method = "glm")
+```
+

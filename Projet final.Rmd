@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Question n°2
 
-### Analyse descriptive du jeu de donnée par clustering
+### 1 - Analyse descriptive du jeu de donnée par clustering
 
 Pour réaliser cette analyse descriptive, nous allons réaliser une analyse par clustering en utilisant la méthode des [**k-means**]{.underline}.
 
@@ -56,18 +56,22 @@ data <- read_csv("wdbc.data",
                                "fractal_dimension_worst"))
 
 clean_data <- data %>% 
+  select(c(contains("_mean"), Diagnosis)) %>% 
+  drop_na()
+
+km_dataset <- data %>% 
   drop_na()
 ```
 
 ```{r}
-set.seed(1234)
+set.seed(123)
 ```
 
 ```{r}
 # Cluster Analysis - kmeans
-kmeans_basic <- kmeans(clean_data[,3:12], centers = 2)
+kmeans_basic <- kmeans(km_dataset[,3:12], centers = 2)
 kmeans_basic_table <- data.frame(kmeans_basic$size, kmeans_basic$centers)
-kmeans_basic_df <- data.frame(Cluster = kmeans_basic$cluster, clean_data)
+kmeans_basic_df <- data.frame(Cluster = kmeans_basic$cluster, km_dataset)
 
 # head of df
 head(kmeans_basic_df)
@@ -83,15 +87,15 @@ ggplot(data = kmeans_basic_df, aes(y = Cluster)) +
 
 ```{r}
 # Fancy K-Means
-fviz_nbclust(scale(clean_data[,3:12]), kmeans, nstart=100, method = "wss") + 
+fviz_nbclust(scale(km_dataset[,3:12]), kmeans, nstart=100, method = "wss") + 
   geom_vline(xintercept = 2, linetype = 1)
 ```
 
 ```{r}
 # Fancy kmeans
-kmeans_fancy <- kmeans(scale(clean_data[,3:12]), 2, nstart = 100)
+kmeans_fancy <- kmeans(scale(km_dataset[,3:12]), 2, nstart = 100)
 # plot the clusters
-fviz_cluster(kmeans_fancy, data = scale(clean_data[,3:12]), geom = c("point"),ellipse.type = "euclid")
+fviz_cluster(kmeans_fancy, data = scale(km_dataset[,3:12]), geom = c("point"),ellipse.type = "euclid")
 ```
 
 ```{r}
@@ -99,4 +103,94 @@ outCtl <- tableby(Cluster ~ Diagnosis + radius_mean + texture_mean + perimeter_m
                   control=tableby.control(total=TRUE, cat.simplify=TRUE,
                   cat.stats=c("Nmiss","countpct"),digits=1))
 summary(outCtl, text=TRUE)
+```
+
+## Question 3
+
+### 1 - Méthode par Arbre de décision
+
+Tout d'abord il est nécessaire de réaliser un chargement des données dans un dataset distinct.
+
+```{r}
+dt_dataset <- clean_data
+```
+
+Création d'un dataset d'apprentissage et d'un dataset de validation
+
+```{r}
+nb_lignes <- floor((nrow(dt_dataset)*0.75)) #Nombre de lignes de l’échantillon d’apprentissage : 75% du dataset
+dt_dataset <- dt_dataset[sample(nrow(dt_dataset)), ] #Ajout de numéros de lignes
+dt_dataset.train <- dt_dataset[1:nb_lignes, ] #Echantillon d’apprentissage
+dt_dataset.test <- dt_dataset[(nb_lignes+1):nrow(dt_dataset), ] #Echantillon de test
+```
+
+```{r}
+set.seed(123)
+#Construction de l’arbre
+dataset.Tree <- rpart(Diagnosis ~ ., 
+                      data = dt_dataset.train,
+                      method = "class", 
+                      control = rpart.control(minsplit = 5,
+                                              cp=0)
+                      )
+
+#Affichage du résultat
+rpart.plot(dataset.Tree)
+
+#On cherche à minimiser l’erreur pour définir le niveau d’élagage
+plotcp(dataset.Tree)
+printcp(dataset.Tree)
+```
+
+Affichage du cp optimal
+
+```{r}
+print(dataset.Tree$cptable[which.min(dataset.Tree$cptable[,4]),1])
+```
+
+```{r}
+set.seed(123)
+#Elagage de l’arbre avec le cp optimal
+dataset.Tree_Opt <- prune(dataset.Tree,
+                          cp = dataset.Tree$cptable[which.min(dataset.Tree$cptable[,4]),1])
+
+#Représentation graphique de l’arbre optimal
+prp(dataset.Tree_Opt,extra=1)
+```
+
+```{r}
+#Prédiction du modèle sur les données de test
+dataset.test_Predict<-predict(dataset.Tree_Opt,newdata=dt_dataset.test, type= "class")
+
+#Matrice de confusion
+mc<-table(dt_dataset.test$Diagnosis, dataset.test_Predict)
+print(mc)
+```
+
+```{r}
+#Erreur de classement
+erreur.classement<-1.0-(mc[1,1]+mc[2,2])/sum(mc)
+print(erreur.classement)
+```
+
+```{r}
+#Taux de prédiction
+prediction=mc[2,2]/sum(mc[2,])
+print(prediction)
+```
+
+```{r}
+# Calcul pour la classe M
+dt_precision_M <- mc[2,2] / sum(mc[,2])
+dt_recall_M <- mc[2,2] / sum(mc[2,])
+dt_f1_score_M <- 2 * (dt_precision_M * dt_recall_M) / (dt_precision_M + dt_recall_M)
+
+# Calcul pour la classe B
+dt_precision_B <- mc[1,1] / sum(mc[,1])
+dt_recall_B <- mc[1,1] / sum(mc[1,])
+dt_f1_score_B <- 2 * (dt_precision_B * dt_recall_B) / (dt_precision_B + dt_recall_B)
+
+# Affichage des résultats
+print(paste("F1-score pour la classe Malin :", dt_f1_score_M))
+print(paste("F1-score pour la classe Bénin :", dt_f1_score_B))
 ```

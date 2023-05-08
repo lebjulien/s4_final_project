@@ -55,20 +55,23 @@ data <- read_csv("wdbc.data",
 clean_data <- data %>% 
   select(c(contains("_mean"), Diagnosis)) %>% 
   drop_na()
+
+dt_dataset <- clean_data
 ```
 
 ```{r}
 #Création d’un dataset d’apprentissage et d’un dataset de validation
-nb_lignes <- floor((nrow(clean_data)*0.75)) #Nombre de lignes de l’échantillon d’apprentissage : 75% du dataset
-dataset <- clean_data[sample(nrow(clean_data)), ] #Ajout de numéros de lignes
-dataset.train <- clean_data[1:nb_lignes, ] #Echantillon d’apprentissage
-dataset.test <- clean_data[(nb_lignes+1):nrow(clean_data), ] #Echantillon de test
+nb_lignes <- floor((nrow(dt_dataset)*0.75)) #Nombre de lignes de l’échantillon d’apprentissage : 75% du dataset
+dt_dataset <- dt_dataset[sample(nrow(dt_dataset)), ] #Ajout de numéros de lignes
+dt_dataset.train <- dt_dataset[1:nb_lignes, ] #Echantillon d’apprentissage
+dt_dataset.test <- dt_dataset[(nb_lignes+1):nrow(dt_dataset), ] #Echantillon de test
 ```
 
 ```{r}
+set.seed(123)
 #Construction de l’arbre
 dataset.Tree <- rpart(Diagnosis ~ ., 
-                      data = dataset.train,
+                      data = dt_dataset.train,
                       method = "class", 
                       control = rpart.control(minsplit = 5,
                                               cp=0)
@@ -81,12 +84,14 @@ rpart.plot(dataset.Tree)
 plotcp(dataset.Tree)
 printcp(dataset.Tree)
 ```
+
 ```{r}
 #Affichage du cp optimal
 print(dataset.Tree$cptable[which.min(dataset.Tree$cptable[,4]),1])
 ```
 
 ```{r}
+set.seed(123)
 #Elagage de l’arbre avec le cp optimal
 dataset.Tree_Opt <- prune(dataset.Tree,
                           cp = dataset.Tree$cptable[which.min(dataset.Tree$cptable[,4]),1])
@@ -94,14 +99,16 @@ dataset.Tree_Opt <- prune(dataset.Tree,
 #Représentation graphique de l’arbre optimal
 prp(dataset.Tree_Opt,extra=1)
 ```
+
 ```{r}
 #Prédiction du modèle sur les données de test
-dataset.test_Predict<-predict(dataset.Tree_Opt,newdata=dataset.test, type= "class")
+dataset.test_Predict<-predict(dataset.Tree_Opt,newdata=dt_dataset.test, type= "class")
 
 #Matrice de confusion
-mc<-table(dataset.test$Diagnosis, dataset.test_Predict)
+mc<-table(dt_dataset.test$Diagnosis, dataset.test_Predict)
 print(mc)
 ```
+
 ```{r}
 #Erreur de classement
 erreur.classement<-1.0-(mc[1,1]+mc[2,2])/sum(mc)
@@ -114,3 +121,18 @@ prediction=mc[2,2]/sum(mc[2,])
 print(prediction)
 ```
 
+```{r}
+# Calcul pour la classe M
+dt_precision_M <- mc[2,2] / sum(mc[,2])
+dt_recall_M <- mc[2,2] / sum(mc[2,])
+dt_f1_score_M <- 2 * (dt_precision_M * dt_recall_M) / (dt_precision_M + dt_recall_M)
+
+# Calcul pour la classe B
+dt_precision_B <- mc[1,1] / sum(mc[,1])
+dt_recall_B <- mc[1,1] / sum(mc[1,])
+dt_f1_score_B <- 2 * (dt_precision_B * dt_recall_B) / (dt_precision_B + dt_recall_B)
+
+# Affichage des résultats
+print(paste("F1-score pour la classe Malin :", dt_f1_score_M))
+print(paste("F1-score pour la classe Bénin :", dt_f1_score_B))
+```

@@ -2,6 +2,8 @@
 title: "Projet final Test 2"
 output: html_document
 date: "2023-04-24"
+editor_options: 
+  chunk_output_type: inline
 ---
 
 ```{r setup, include=FALSE}
@@ -112,6 +114,12 @@ summary(outCtl, text=TRUE)
 Tout d'abord il est nécessaire de réaliser un chargement des données dans un dataset distinct.
 
 ```{r}
+library(tidyverse)
+library(FactoMineR)
+library(factoextra)
+library(rpart)
+library(rpart.plot)
+
 dt_dataset <- clean_data
 ```
 
@@ -181,16 +189,177 @@ print(prediction)
 
 ```{r}
 # Calcul pour la classe M
-dt_precision_M <- mc[2,2] / sum(mc[,2])
-dt_recall_M <- mc[2,2] / sum(mc[2,])
-dt_f1_score_M <- 2 * (dt_precision_M * dt_recall_M) / (dt_precision_M + dt_recall_M)
+#dt_precision_M <- mc[2,2] / sum(mc[,2])
+#dt_recall_M <- mc[2,2] / sum(mc[2,])
+#dt_f1_score_M <- 2 * (dt_precision_M * dt_recall_M) / (dt_precision_M + dt_recall_M)
 
 # Calcul pour la classe B
-dt_precision_B <- mc[1,1] / sum(mc[,1])
-dt_recall_B <- mc[1,1] / sum(mc[1,])
-dt_f1_score_B <- 2 * (dt_precision_B * dt_recall_B) / (dt_precision_B + dt_recall_B)
+#dt_precision_B <- mc[1,1] / sum(mc[,1])
+#dt_recall_B <- mc[1,1] / sum(mc[1,])
+#dt_f1_score_B <- 2 * (dt_precision_B * dt_recall_B) / (dt_precision_B + dt_recall_B)
 
 # Affichage des résultats
-print(paste("F1-score pour la classe Malin :", dt_f1_score_M))
-print(paste("F1-score pour la classe Bénin :", dt_f1_score_B))
+#print(paste("F1-score pour la classe Malin :", dt_f1_score_M))
+#print(paste("F1-score pour la classe Bénin :", dt_f1_score_B))
 ```
+
+```{r}
+#Calcul des mesures pour chaque classe
+dt_precision <- diag(mc) / colSums(mc)
+dt_recall <- diag(mc) / rowSums(mc)
+dt_f1_score <- 2 * dt_precision * dt_recall / (dt_precision + dt_recall)
+dt_accuracy <- sum(diag(mc)) / sum(mc)
+
+#Création d'un tableau avec les mesures pour chaque classe
+results <- data.frame(Class = rownames(mc),
+                      Precision = dt_precision,
+                      Recall = dt_recall,
+                      F1_score = dt_f1_score)
+
+#Affichage des résultats
+print(results)
+print(dt_accuracy)
+```
+
+### 2 - Méthode par Forets aléatoires
+
+```{r}
+library(readr)
+library(randomForest)
+library(plotly)
+
+rf_dataset <- clean_data
+
+rf_dataset$Diagnosis <- factor(rf_dataset$Diagnosis)
+```
+
+```{r}
+# Diviser les données en ensembles d'apprentissage et de test
+set.seed(123) # pour la reproductibilité des résultats
+
+train_index <- sample(nrow(rf_dataset), 0.7 * nrow(rf_dataset))
+train_data <- rf_dataset[train_index, ]
+test_data <- rf_dataset[-train_index, ]
+```
+
+```{r}
+# Entraîner le modèle de forêt aléatoire
+rf_model <- randomForest(Diagnosis ~ ., data = train_data, ntree = 100, mtry = 2, na.action = na.omit)
+
+# Afficher les résultats du modèle
+print(rf_model)
+```
+
+```{r}
+# Calculer l'importance des variables
+var_importance <- importance(rf_model)
+
+# Afficher les variables les plus importantes
+print(var_importance)
+```
+
+```{r}
+# Évaluer la performance du modèle sur les données de test
+rf_predictions <- predict(rf_model, test_data)
+confusion_matrix <- table(rf_predictions, test_data$Diagnosis)
+accuracy <- sum(diag(confusion_matrix))/sum(confusion_matrix)
+
+# Afficher la matrice de confusion et la précision
+print(confusion_matrix)
+```
+
+```{r}
+# Calcul pour la classe M
+precision_M <- confusion_matrix[2,2] / sum(confusion_matrix[,2])
+recall_M <- confusion_matrix[2,2] / sum(confusion_matrix[2,])
+f1_score_M <- 2 * (precision_M * recall_M) / (precision_M + recall_M)
+
+# Calcul pour la classe B
+precision_B <- confusion_matrix[1,1] / sum(confusion_matrix[,1])
+recall_B <- confusion_matrix[1,1] / sum(confusion_matrix[1,])
+f1_score_B <- 2 * (precision_B * recall_B) / (precision_B + recall_B)
+
+# Affichage des résultats
+print(paste("F1-score pour la classe Malin :", f1_score_M))
+print(paste("F1-score pour la classe Bénin :", f1_score_B))
+```
+
+
+### 3 - Méthode par Ensemble Learning
+
+```{r}
+library(tidyverse)
+library(mlbench)
+library(caret)
+library(caretEnsemble)
+
+el_dataset <- clean_data
+```
+
+```{r}
+# Example of Boosting Algorithms
+control <- trainControl(method="repeatedcv", number=10, repeats=3)
+seed <- 7
+metric <- "Accuracy"
+
+# C5.0
+set.seed(seed)
+fit.c50 <- train(Diagnosis~., data=clean_data, method="C5.0", metric=metric, trControl=control)
+
+# Stochastic Gradient Boosting
+set.seed(seed)
+fit.gbm <- train(Diagnosis~., data=clean_data, method="gbm", metric=metric, trControl=control, verbose=FALSE)
+
+# summarize results
+boosting_results <- resamples(list(c5.0=fit.c50, gbm=fit.gbm))
+summary(boosting_results)
+dotplot(boosting_results)
+```
+
+```{r}
+# Example of Bagging algorithms
+control <- trainControl(method="repeatedcv", number=10, repeats=3)
+seed <- 7
+metric <- "Accuracy"
+
+# Bagged CART
+set.seed(seed)
+fit.treebag <- train(Diagnosis~., data=clean_data, method="treebag", metric=metric, trControl=control)
+
+# Random Forest
+set.seed(seed)
+fit.rf <- train(Diagnosis~., data=clean_data, method="rf", metric=metric, trControl=control)
+
+# summarize results
+bagging_results <- resamples(list(treebag=fit.treebag, rf=fit.rf))
+summary(bagging_results)
+dotplot(bagging_results)
+```
+
+```{r}
+# Example of Stacking algorithms
+# create submodels
+control <- trainControl(method="repeatedcv", number=10, repeats=3, savePredictions=TRUE, classProbs=TRUE)
+algorithmList <- c('lda', 'rpart', 'glm', 'knn', 'svmRadial')
+set.seed(seed)
+models <- caretList(Diagnosis~., data=clean_data, trControl=control, methodList=algorithmList)
+results <- resamples(models)
+summary(results)
+dotplot(results)
+```
+
+```{r}
+# stack using glm
+stackControl <- trainControl(method="repeatedcv", number=10, repeats=3, savePredictions=TRUE, classProbs=TRUE)
+set.seed(seed)
+stack.glm <- caretStack(models, method="glm", metric="Accuracy", trControl=stackControl)
+print(stack.glm)
+```
+
+```{r}
+# stack using random forest
+set.seed(seed)
+stack.rf <- caretStack(models, method="rf", metric="Accuracy", trControl=stackControl)
+print(stack.rf)
+```
+

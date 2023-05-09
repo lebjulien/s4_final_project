@@ -59,6 +59,7 @@ clean_data <- data %>%
 
 target <- "Diagnosis"
 ```
+
 ```{r}
 set.seed(123)
 trainIndex <- createDataPartition(clean_data$Diagnosis, p = 0.7, 
@@ -82,4 +83,3 @@ for (i in 1:length(model_list)) {
 ```{r}
 ensemble_model <- stack(models, method = "glm")
 ```
-

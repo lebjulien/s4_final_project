@@ -123,16 +123,35 @@ print(prediction)
 
 ```{r}
 # Calcul pour la classe M
-dt_precision_M <- mc[2,2] / sum(mc[,2])
-dt_recall_M <- mc[2,2] / sum(mc[2,])
-dt_f1_score_M <- 2 * (dt_precision_M * dt_recall_M) / (dt_precision_M + dt_recall_M)
+#dt_precision_M <- mc[2,2] / sum(mc[,2])
+#dt_recall_M <- mc[2,2] / sum(mc[2,])
+#dt_f1_score_M <- 2 * (dt_precision_M * dt_recall_M) / (dt_precision_M + dt_recall_M)
 
 # Calcul pour la classe B
-dt_precision_B <- mc[1,1] / sum(mc[,1])
-dt_recall_B <- mc[1,1] / sum(mc[1,])
-dt_f1_score_B <- 2 * (dt_precision_B * dt_recall_B) / (dt_precision_B + dt_recall_B)
+#dt_precision_B <- mc[1,1] / sum(mc[,1])
+#dt_recall_B <- mc[1,1] / sum(mc[1,])
+#dt_f1_score_B <- 2 * (dt_precision_B * dt_recall_B) / (dt_precision_B + dt_recall_B)
 
 # Affichage des résultats
-print(paste("F1-score pour la classe Malin :", dt_f1_score_M))
-print(paste("F1-score pour la classe Bénin :", dt_f1_score_B))
+#print(paste("F1-score pour la classe Malin :", dt_f1_score_M))
+#print(paste("F1-score pour la classe Bénin :", dt_f1_score_B))
+```
+
+```{r}
+#Calcul des mesures pour chaque classe
+dt_precision <- diag(mc) / colSums(mc)
+dt_recall <- diag(mc) / rowSums(mc)
+dt_f1_score <- 2 * dt_precision * dt_recall / (dt_precision + dt_recall)
+dt_accuracy <- sum(diag(mc)) / sum(mc)
+
+#Création d'un tableau avec les mesures pour chaque classe
+results <- data.frame(Class = rownames(mc),
+                      Precision = dt_precision,
+                      Recall = dt_recall,
+                      F1_score = dt_f1_score)
+#Ajout de l'accuracy
+results <- rbind(results, c("Overall", "-", "-", "-", dt_accuracy)) 
+
+#Affichage des résultats
+print(results)
 ```

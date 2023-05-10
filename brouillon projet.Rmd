@@ -10,6 +10,40 @@ Question 1 : Analyse descriptive, visualisation
 .libPaths("C:/Users/kluhs/Documents/R/win-library/4.0/librairie")
 library(dplyr)
 library(ggplot2)
+library(readr)
+
+diabetes_prediction_dataset <- read_csv("diabetes_prediction_dataset.csv")
+
+wdbc <- read_csv("wdbc.data", 
+                 col_names = c("ID number",
+                               "Diagnosis",
+                               "radius_mean",
+                               "texture_mean",
+                               "perimeter_mean",
+                               "area_mean","smoothness_mean",
+                               "compactness_mean",
+                               "concavity_mean",
+                               "concave_points_mean",
+                               "symmetry_mean",
+                               "fractal_dimension_mean",
+                               "radius_SE","texture_SE",
+                               "perimeter_SE","area_SE",
+                               "smoothness_SE",
+                               "compactness_SE",
+                               "concavity_SE",
+                               "concave_points_SE",
+                               "symmetry_SE",
+                               "fractal_dimension_SE",
+                               "radius_worst",
+                               "texture_worst",
+                               "perimeter_worst",
+                               "area_worst",
+                               "smoothness_worst",
+                               "compactness_worst",
+                               "concavity_worst",
+                               "concave_points_worst",
+                               "symmetry_worst",
+                               "fractal_dimension_worst"))
 ```
 
 ```{r}
@@ -179,6 +213,7 @@ for (k in 2:6) {
   clusters <- cutree(myhclust, k = k)
   ari <- adjustedRandIndex(clusters, wdbc$Diagnosis)
   print(paste0("ARI pour ", k, " groupes : ", ari))
+}
 ```
 
 ```{r}

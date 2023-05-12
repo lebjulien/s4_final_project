@@ -14,9 +14,10 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ### 1 - Analyse descriptive du jeu de donnée par clustering
 
-Pour réaliser cette analyse descriptive, nous allons réaliser une analyse par clustering en utilisant la méthode des [**k-means**]{.underline}.
+Pour réaliser cette analyse descriptive, nous allons réaliser une analyse par clustering en utilisant la méthode des k plus proches voisins.
 
 Dans un premier temps, il est alors nécessaire de charger et de nettoyer le jeu de données en renommant les variables et en éliminant les donées manquantes.
+Il est aussi nécessaire de renommer les différentes variables présentes dans le dataset. Ainsi, les variables se terminant par _mean réferent a la moyenne de celle-ci, les variables se terminant par _SE indiquent la Mean Squared Error et celle terminant par worst indiquent la pire évaluation. 
 
 ```{r}
 library(readr)

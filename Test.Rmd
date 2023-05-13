@@ -285,5 +285,4 @@ dt_dataset.test$Diagnosis <- factor(dt_dataset.test$Diagnosis, levels = c("B", "
 
 #Création d'un tableau de confusion
 confusionMatrix(dt_dataset.test$Diagnosis, dataset.test_Predict, positive = "M")
-
 ```

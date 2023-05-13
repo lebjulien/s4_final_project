@@ -160,12 +160,18 @@ summary(outCtl, text=F)
 
 ## Question 3
 
-Nous allons ensuite développer différents modèles de diagnostic et en évaluer leurs performances. 
-Trois approches vont être utilisées : une méthode par Arbre de décision, une par Forêts aléatoires et une par Ensemble Learning.
+Nous allons ensuite développer différents modèles de diagnostic et en
+évaluer leurs performances. Trois approches vont être utilisées : une
+méthode par Arbre de décision, une par Forêts aléatoires et une par
+Ensemble Learning.
 
 ### 1 - Méthode par Arbre de décision
 
-Pour cette méthode par Arbre de décision, nous allons commencer par charger une dataset clone des données que nous souhaitons analyser. Nous allons ensuite partitionner ce dataset en deux parties : une qui servira de base de données d'entrainement du modèle, et une qui nous permettra d'évaluer le modèle obtenu précédemment. 
+Pour cette méthode par Arbre de décision, nous allons commencer par
+charger une dataset clone des données que nous souhaitons analyser. Nous
+allons ensuite partitionner ce dataset en deux parties : une qui servira
+de base de données d'entrainement du modèle, et une qui nous permettra
+d'évaluer le modèle obtenu précédemment.
 
 ```{r, echo=FALSE, message=FALSE}
 library(tidyverse)
@@ -183,12 +189,20 @@ dt_dataset.train <- dt_dataset[1:nb_lignes, ] #Echantillon d’apprentissage
 dt_dataset.test <- dt_dataset[(nb_lignes+1):nrow(dt_dataset), ] #Echantillon de test
 ```
 
-Voici ci-dessous les résultats du modèles entraîné sur le dataset d’entraînement. 
-Cet arbre de décision est volumineux et va donc avoir besoin d'un élagage afin de réduire se complexité. Pour cela nous allons faire appel à la formule du coût de complexité. Il s'agit d'un paramètre qui permet de contrôler la taille maximale de l'arbre de décision, c'est-à-dire le nombre maximal de nœuds ou de feuilles dans l'arbre. 
+Voici ci-dessous les résultats du modèles entraîné sur le dataset
+d'entraînement. Cet arbre de décision est volumineux et va donc avoir
+besoin d'un élagage afin de réduire se complexité. Pour cela nous allons
+faire appel à la formule du coût de complexité. Il s'agit d'un paramètre
+qui permet de contrôler la taille maximale de l'arbre de décision,
+c'est-à-dire le nombre maximal de nœuds ou de feuilles dans l'arbre.
 
-En général, un arbre de décision plus complexe peut mieux s'adapter aux données d'entraînement, mais il est également plus susceptible de surapprendre (overfitting) et de mal généraliser aux nouvelles données. Par conséquent, le coût de complexité est souvent utilisé pour éviter le surapprentissage en régularisant le modèle et en limitant sa complexité.
+En général, un arbre de décision plus complexe peut mieux s'adapter aux
+données d'entraînement, mais il est également plus susceptible de
+surapprendre (overfitting) et de mal généraliser aux nouvelles données.
+Par conséquent, le coût de complexité est souvent utilisé pour éviter le
+surapprentissage en régularisant le modèle et en limitant sa complexité.
 
-```{r}
+```{r echo=FALSE, fig.width=4, fig.asp=0.8}
 set.seed(12)
 #Construction de l’arbre
 dataset.Tree <- rpart(Diagnosis ~ ., 
@@ -199,21 +213,26 @@ dataset.Tree <- rpart(Diagnosis ~ .,
 #Affichage du résultat
 rpart.plot(dataset.Tree)
 ```
-Pour bien élager notre arbre de décision, nous allons chercher le coût de compléxité (cp) pour lequel le taux de mauvais classement (xerror) est la plus faible. 
 
-```{r}
+Pour bien élager notre arbre de décision, nous allons chercher le coût
+de compléxité (cp) pour lequel le taux de mauvais classement (xerror)
+est la plus faible.
+
+```{r echo=FALSE, fig.width=4, fig.asp=0.8}
 #On cherche à minimiser l’erreur pour définir le niveau d’élagage
-plotcp(dataset.Tree)
+#plotcp(dataset.Tree)
 printcp(dataset.Tree)
 ```
 
-Le coût de complexité optimal pour ce modèle va s'afficher sous ce paragraphe. Ce paramètre va ensuite être utilisé pour élager l'arbre obtenu précédemment.  
+Le coût de complexité optimal pour ce modèle va s'afficher sous ce
+paragraphe. Ce paramètre va ensuite être utilisé pour élager l'arbre
+obtenu précédemment.
 
-```{r}
+```{r echo=FALSE}
 print(dataset.Tree$cptable[which.min(dataset.Tree$cptable[,4]),1])
 ```
 
-```{r}
+```{r echo=FALSE, fig.width=4, fig.asp=0.8}
 set.seed(12)
 #Elagage de l’arbre avec le cp optimal
 dataset.Tree_Opt <- prune(dataset.Tree,
@@ -223,7 +242,7 @@ dataset.Tree_Opt <- prune(dataset.Tree,
 rpart.plot(dataset.Tree_Opt)
 ```
 
-```{r}
+```{r echo=FALSE}
 #Prédiction du modèle sur les données de test
 dataset.test_Predict<-predict(dataset.Tree_Opt,newdata=dt_dataset.test, type= "class")
 
@@ -231,7 +250,6 @@ dt_dataset.test$Diagnosis <- factor(dt_dataset.test$Diagnosis, levels = c("B", "
 
 #Création d'un tableau de confusion
 confusionMatrix(dt_dataset.test$Diagnosis, dataset.test_Predict, positive = "M")
-
 ```
 
 ### 2 - Méthode par Forets aléatoires

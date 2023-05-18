@@ -4,7 +4,7 @@ output:
   html_document: 
     code_folding: hide
   pdf_document: default
-date: "2023-04-24"
+date: "2023-05-18"
 editor_options:
   chunk_output_type: inline
 author: Julien Leblanc, Léa Kluhs
@@ -576,7 +576,7 @@ print(stack.rf)
 
 Nous avons choisi comme de notre choix un dataset sur le diabète et nous avons fais le choix de choisir une approche supervisée d'arbre de décision. Dataset : <https://www.kaggle.com/datasets/iammustafatz/diabetes-prediction-dataset?resource=download&fbclid=IwAR1F9jDfOzNJTqTne1SHU1kka85rcS9atS6BihGSZFTxHp80T2t9Egps5YU>
 
-Nous commencons par nettoyer notre dataset et vérifier que nos variables sont bien définies sous la bonne catégorie de variables : ici facteur pour 6 de nos variables.
+Nous commencons par nettoyer notre dataset et vérifier que nos variables sont bien définies sous la bonne catégorie de variables : ici factoriser 6 de nos variables.
 
 ```{r message=FALSE}
 diabetes_prediction_dataset <- read_csv("diabetes_prediction_dataset.csv")
@@ -628,7 +628,7 @@ Pour bien élaguer notre arbre de décision, nous allons chercher le coût de co
 
 ```{r}
 #On cherche à minimiser l’erreur pour définir le niveau d’élagage
-plotcp(diabetes.Tree)
+#plotcp(diabetes.Tree)
 printcp(diabetes.Tree)
 ```
 

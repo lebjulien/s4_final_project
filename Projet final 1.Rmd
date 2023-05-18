@@ -1,5 +1,5 @@
 ---
-title: "Projet final Test 2"
+title: "Projet final"
 output:
   html_document: 
     code_folding: hide
@@ -7,6 +7,7 @@ output:
 date: "2023-04-24"
 editor_options:
   chunk_output_type: inline
+author: Julien Leblanc, Léa Kluhs
 ---
 
 ```{r setup, include=FALSE, echo=FALSE}
@@ -14,6 +15,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Partie I
+
+Liste des packages nécessaires.
 
 ```{r message=FALSE}
 library(readr)
@@ -31,11 +34,12 @@ library(clValid)
 library(mclust)
 library(ggpubr)
 source(url("https://raw.githubusercontent.com/larmarange/JLutils/master/R/clustering.R"))
+library(reshape2)
 ```
 
 Téléchargement de notre dataset pour lequel nous avons renommé les noms des colonnes.
 
-```{r}
+```{r message=FALSE}
 data <- read_csv("wdbc.data", 
                  col_names = c("ID number",
                                "Diagnosis",
@@ -66,18 +70,54 @@ data <- read_csv("wdbc.data",
                                "concave_points_worst",
                                "symmetry_worst",
                                "fractal_dimension_worst"))
-```
 
-Liste des packages nécessaires 
+clean_data <- data %>% 
+  select(c(contains("_mean"), Diagnosis)) %>% 
+  drop_na()
+
+```
 
 ## Question n°1
 
+Tout d'abord voici ci-dessous les différentes variables de notre dataset.
+
 ```{r}
 glimpse(data)
+```
+
+Voici ci-dessous une petit test statistique sur les variables que nous allons étudier.
+
+```{r}
 data$Diagnosis <- as.factor(data$Diagnosis)
 summary(data)
 ```
 
+Enfin, la matrice de corrélation nous permet d'observer les corrélations entre nos variables.
+
+Les valeurs élevées et basses dans le contexte de la corrélation indiquent la force et la direction de la relation linéaire entre deux variables. Voici ce que signifient les valeurs élevées et basses de corrélation :
+
+-   Valeurs élevées de corrélation positive : Une valeur élevée de corrélation positive (proche de +1) indique une relation linéaire forte et positive entre les deux variables. Cela signifie que lorsque la valeur d'une variable augmente, la valeur de l'autre variable augmente également.
+
+-   Valeurs élevées de corrélation négative : Une valeur élevée de corrélation négative (proche de -1) indique une relation linéaire forte et négative entre les deux variables. Cela signifie que lorsque la valeur d'une variable augmente, la valeur de l'autre variable diminue.
+
+-   Valeurs proches de zéro ou faibles de corrélation : Des valeurs proches de zéro ou faibles de corrélation (proches de 0) indiquent une faible relation linéaire entre les variables. Cela suggère qu'il y a peu ou pas de lien linéaire entre les variables étudiées. Une corrélation faible signifie que les valeurs des variables ne varient pas de manière linéairement prévisible.
+
+```{r}
+data_noDiagnosis <- subset(clean_data, select = -Diagnosis)
+
+cor_matrix <- cor(data_noDiagnosis)
+
+# Afficher la matrice de corrélation
+cor_matrix_melted <- melt(cor_matrix)
+ggplot(data = cor_matrix_melted, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient(low = "blue", high = "red") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  labs(title = "Matrice de corrélation",
+      x = "Variable 1", y = "Variable 2",
+      caption = "Basé sur le dataset wdbc.data")
+```
 
 ## Question n°2
 
@@ -88,10 +128,6 @@ Pour réaliser cette analyse descriptive, nous allons réaliser une analyse par 
 Dans un premier temps, il est alors nécessaire de charger et de nettoyer le jeu de données en renommant les variables et en éliminant les données manquantes. Il est aussi nécessaire de renommer les différentes variables présentes dans le dataset. Ainsi, les variables se terminant par \_mean réfèrent à la moyenne de celle-ci, les variables se terminant par \_SE indiquent la Mean Squared Error et celle terminant par \_worst indiquent la pire évaluation.
 
 ```{r, message=FALSE}
-clean_data <- data %>% 
-  select(c(contains("_mean"), Diagnosis)) %>% 
-  drop_na()
-
 km_dataset <- data %>% 
   drop_na()
 ```
@@ -219,8 +255,8 @@ wdbc <- read_csv("wdbc.data",
                                "fractal_dimension_worst"))
 ```
 
+Nous sélectionnons les variables qui nous interessent, ici tous les variables \_mean, et faisons une standardisation. Nous faisons ensuite un calcul de la matrice de distances entre les individus en utilisant la méthode de calcul euclidienne.
 
-Nous sélectionnons les variables qui nous interessent, ici tous les variables _mean, et faisons une standardisation. Nous faisons ensuite un calcul de la matrice de distances entre les individus en utilisant la méthode de calcul euclidienne.
 ```{r}
 # Sélection des variables et standardisation
 myvars <- wdbc[,c("radius_mean", "texture_mean", "perimeter_mean","area_mean","smoothness_mean","compactness_mean","concavity_mean","concave_points_mean","symmetry_mean","fractal_dimension_mean")]
@@ -242,7 +278,8 @@ plot(myhclust, labels = FALSE)
 ```
 
 Nous allons utiliser des visualisations pour interpréter les résultats de l'analyse de clustering et prendre des décisions concernant le nombre de classes à retenir. Nous pouvons voir que nous observons qu'il est possible de définir 2 ou 3 classes suite à la classification.
-```{r}
+
+```{r warning=FALSE}
 inertie <- sort(myhclust$height, decreasing = TRUE)
 plot(inertie[1:20], type = "s", xlab = "Nombre de classes", ylab = "Inertie")
 points(c(2, 3), inertie[c(2, 3)], col = c("green3", "red3"), cex = 2, lwd = 3)
@@ -287,7 +324,6 @@ Nous utilisons l'indice de Rand ajusté, pour évaluer objectivement la qualité
 rst <- adjustedRandIndex(mycut, wdbc$Diagnosis) 
 rst
 ```
-
 
 ## Question 3
 
@@ -538,33 +574,32 @@ print(stack.rf)
 
 # Partie II
 
-Nous avons choisi comme de notre choix un dataset sur le diabète et nous avons fais le choix de choisir une approche supervisée d'arbre de décision.
-Dataset : https://www.kaggle.com/datasets/iammustafatz/diabetes-prediction-dataset?resource=download&fbclid=IwAR1F9jDfOzNJTqTne1SHU1kka85rcS9atS6BihGSZFTxHp80T2t9Egps5YU
-
+Nous avons choisi comme de notre choix un dataset sur le diabète et nous avons fais le choix de choisir une approche supervisée d'arbre de décision. Dataset : <https://www.kaggle.com/datasets/iammustafatz/diabetes-prediction-dataset?resource=download&fbclid=IwAR1F9jDfOzNJTqTne1SHU1kka85rcS9atS6BihGSZFTxHp80T2t9Egps5YU>
 
 Nous commencons par nettoyer notre dataset et vérifier que nos variables sont bien définies sous la bonne catégorie de variables : ici facteur pour 6 de nos variables.
-```{r}
+
+```{r message=FALSE}
 diabetes_prediction_dataset <- read_csv("diabetes_prediction_dataset.csv")
 
 diabetes_prediction_dataset$gender[diabetes_prediction_dataset$gender == "Other"] <- NA
 diabetes_prediction_dataset$smoking_history[diabetes_prediction_dataset$smoking_history == "No Info"] <- NA
-
 ```
 
 ```{r}
 glimpse(diabetes_prediction_dataset)
+
 diabetes_prediction_dataset$gender <- as.factor(diabetes_prediction_dataset$gender)
 diabetes_prediction_dataset$hypertension <- as.factor(diabetes_prediction_dataset$hypertension)
 diabetes_prediction_dataset$heart_disease <- as.factor(diabetes_prediction_dataset$heart_disease)
 diabetes_prediction_dataset$heart_disease <- as.factor(diabetes_prediction_dataset$heart_disease)
 diabetes_prediction_dataset$smoking_history <- as.factor(diabetes_prediction_dataset$smoking_history)
 diabetes_prediction_dataset$diabetes <- as.factor(diabetes_prediction_dataset$diabetes)
-summary(diabetes_prediction_dataset)
-        
 
+summary(diabetes_prediction_dataset)
 ```
 
 Pour cette méthode par Arbre de décision, nous allons partionner ce dataset en deux parties : une qui servira de base de données d'entrainement du modèle, et une qui nous permettra d'évaluer le modèle obtenu précédemment.
+
 ```{r}
 #Création d’un dataset d’apprentissage et d’un dataset de validation
 nb_lignes <- floor((nrow(diabetes_prediction_dataset)*0.75)) #Nombre de lignes de l’échantillon d’apprentissage : 75% du dataset
@@ -577,7 +612,7 @@ Voici ci-dessous les résultats du modèle entraîné sur le dataset d'entraîne
 
 En général, un arbre de décision plus complexe peut mieux s'adapter aux données d'entraînement, mais il est également plus susceptible de surapprendre (overfitting) et de mal généraliser aux nouvelles données. Par conséquent, le coût de complexité est souvent utilisé pour éviter le surapprentissage en régularisant le modèle et en limitant sa complexité.
 
-```{r}
+```{r warning=FALSE}
 set.seed(12)
 #Construction de l’arbre
 diabetes.Tree <- rpart(diabetes~.,
@@ -614,7 +649,7 @@ diabetes.Tree_Opt <- prune(diabetes.Tree,cp=diabetes.Tree$cptable[which.min(diab
 rpart.plot(diabetes.Tree_Opt)
 ```
 
-Enfin, nous avons entrainé le modèle obtenu sur le dataset de test que nous avions précédemment créé. Ensuite, nous avons réalisé plusieurs tests statistiques sur les prédictions qu'il a pu faire. 
+Enfin, nous avons entrainé le modèle obtenu sur le dataset de test que nous avions précédemment créé. Ensuite, nous avons réalisé plusieurs tests statistiques sur les prédictions qu'il a pu faire.
 
 Les résultats de l'arbre de décision montrent une performance globalement élevée, avec une précision (accuracy) de 97.22%. On peut être satisfait de la capacité du modèle à discriminer entre les classes, avec une sensibilité de 100% pour la classe positive (1) et une spécificité de 97.04% pour la classe négative (0). Le coefficient Kappa de 0.793 indique un accord significatif entre les prédictions du modèle et les valeurs réelles. Ces résultats me donnent confiance dans la compétence du modèle à effectuer des prédictions précises.
 
@@ -622,8 +657,6 @@ Les résultats de l'arbre de décision montrent une performance globalement éle
 #Prédiction du modèle sur les données de test
 diabetes.test_Predict<-predict(diabetes.Tree_Opt,newdata=diabetes.test, type= "class")
 
-
 #Création d'un tableau de confusion
 confusionMatrix(diabetes.test$diabetes, diabetes.test_Predict, positive = "1")
 ```
-
